@@ -13,16 +13,16 @@ num_classes        = 10
 img_rows, img_cols = 32, 32
 img_channels       = 3
 batch_size         = 128
-epochs             = 200
+epochs             = 300
 iterations         = 50000 // batch_size
 weight_decay       = 0.0001
 mean = [125.307, 122.95, 113.865]
 std  = [62.9932, 62.0887, 66.7048]
 
 def scheduler(epoch):
-    if epoch < 80:
-        return 0.1
     if epoch < 150:
+        return 0.1
+    if epoch < 225:
         return 0.01
     return 0.001
 
@@ -33,13 +33,13 @@ def residual_network(img_input,classes_num=10,stack_n=5):
         else:
             stride = (1,1)
 
-        pre_bn   = BatchNormalization()(intput)
+        pre_bn   = BatchNormalization(momentum=0.9, epsilon=1e-5)(intput)
         pre_relu = Activation('relu')(pre_bn)
 
         conv_1 = Conv2D(out_channel,kernel_size=(3,3),strides=stride,padding='same',
                         kernel_initializer="he_normal",
                         kernel_regularizer=regularizers.l2(weight_decay))(pre_relu)
-        bn_1   = BatchNormalization()(conv_1)
+        bn_1   = BatchNormalization(momentum=0.9, epsilon=1e-5)(conv_1)
         relu1  = Activation('relu')(bn_1)
         conv_2 = Conv2D(out_channel,kernel_size=(3,3),strides=(1,1),padding='same',
                         kernel_initializer="he_normal",
@@ -50,7 +50,7 @@ def residual_network(img_input,classes_num=10,stack_n=5):
                                 strides=(2,2),
                                 padding='same',
                                 kernel_initializer="he_normal",
-                                kernel_regularizer=regularizers.l2(weight_decay))(intput)
+                                kernel_regularizer=regularizers.l2(weight_decay))(pre_relu)
             block = add([conv_2, projection])
         else:
             block = add([intput,conv_2])
@@ -78,7 +78,7 @@ def residual_network(img_input,classes_num=10,stack_n=5):
     for _ in range(1,stack_n):
         x = residual_block(x,64,False)
 
-    x = BatchNormalization()(x)
+    x = BatchNormalization(momentum=0.9, epsilon=1e-5)(x)
     x = Activation('relu')(x)
     x = GlobalAveragePooling2D()(x)
 
